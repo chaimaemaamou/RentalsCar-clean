@@ -1,0 +1,225 @@
+Authentication
+POST /auth/login
+Purpose: obtain JWT for manager login (public).
+Request JSON:
+{
+  "email": "manager@amc.local",
+  "password": "password"
+}
+Response JSON:
+{ "token": "eyJ...<jwt>..." }
+
+
+Cars
+GET /cars
+Purpose: list all cars (public).
+Sample curl:
+curl -X GET http://localhost:8081/cars
+Response (array of CarResponseDto):
+[
+  {
+    "id": 1,
+    "model": "Clio",
+    "brand": "Renault",
+    "inventory": 3,
+    "dailyFee": 35.00,
+    "seats": 5,
+    "transmission": "MANUAL",
+    "fuelType": "GASOLINE"
+  },
+  { "...": "..." }
+]
+
+GET /cars/{id}
+Purpose: get single car details (public).
+Sample curl:
+curl -X GET http://localhost:8081/cars/1
+Response:
+{
+  "id": 1,
+  "model": "Clio",
+  "brand": "Renault",
+  "inventory": 3,
+  "dailyFee": 35.00,
+  "seats": 5,
+  "transmission": "MANUAL",
+  "fuelType": "GASOLINE"
+}
+
+GET /cars/search?brand=&fuelType=&transmission=&minSeats=&maxPrice=
+Purpose: filter/search cars (public). Query params optional.
+Sample curl:
+curl -G http://localhost:8081/cars/search --data-urlencode "brand=Renault" --data-urlencode "maxPrice=50.00"
+Response: array of CarResponseDto (same shape as above).
+
+POST /cars (MANAGER only)
+Purpose: create a new car.
+Sample curl (manager JWT required):
+curl -X POST http://localhost:8081/cars \
+  -H "Authorization: Bearer <jwt>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "AdminCar",
+    "brand": "TestBrand",
+    "inventory": 1,
+    "dailyFee": 100.00,
+    "seats": 5,
+    "transmission": "MANUAL",
+    "fuelType": "GASOLINE"
+  }'
+Response (CarResponseDto):
+{
+  "id": 11,
+  "model": "AdminCar",
+  "brand": "TestBrand",
+  "inventory": 1,
+  "dailyFee": 100.00,
+  "seats": 5,
+  "transmission": "MANUAL",
+  "fuelType": "GASOLINE"
+}
+
+PATCH /cars/{id} (MANAGER only)
+Purpose: update car details. Body same as create.
+Sample:
+curl -X PATCH http://localhost:8081/cars/11 \
+  -H "Authorization: Bearer <jwt>" \
+  -H "Content-Type: application/json" \
+  -d '{ "inventory": 2, "dailyFee": 95.00, "model":"AdminCar","brand":"TestBrand","seats":5,"transmission":"MANUAL","fuelType":"GASOLINE" }'
+Response: updated CarResponseDto.
+
+DELETE /cars/{id} (MANAGER only)
+Purpose: soft-delete a car.
+Sample:
+curl -X DELETE http://localhost:8081/cars/11 -H "Authorization: Bearer <jwt>"
+Response:
+"Car (ID: 11) successfully deleted."
+
+
+Rentals
+POST /rentals (public - walk-in customers)
+Purpose: create a rental.
+Request JSON (RentalCreateRequestDto):
+{
+  "carId": 1,
+  "rentalDate": "2025-11-21",
+  "returnDate": "2025-11-23",
+  "customerName": "Walkin",
+  "customerPhone": "+212600000000",
+  "customerEmail": "walkin@example.com",
+  "driverLicenseNumber": "DL123",
+  "paymentMethod": "AGENCY"
+}
+Sample curl:
+curl -X POST http://localhost:8081/rentals -H "Content-Type: application/json" -d '<JSON above>'
+Response (RentalResponseDto):
+{
+  "id": 8,
+  "carId": 1,
+  "carBrand": "Renault",
+  "carModel": "Clio",
+  "rentalDate": "2025-11-21",
+  "returnDate": "2025-11-23",
+  "actualReturnDate": null,
+  "customerName": "Walkin",
+  "customerPhone": "+212600000000",
+  "customerEmail": "walkin@example.com",
+  "driverLicenseNumber": "DL123",
+  "dailyRate": 35.00,
+  "totalDays": 2,
+  "totalPrice": 70.00,
+  "status": "ACTIVE",
+  "paymentMethod": "AGENCY",
+  "deliveryFee": 0.00
+}
+
+GET /rentals?user_id={id}&is_active={true|false}
+Purpose: list rentals (public). Sample:
+curl -X GET 'http://localhost:8081/rentals?is_active=true'
+Response: array of RentalResponseDto.
+
+GET /rentals/{id}
+Purpose: get rental details (public).
+Sample:
+curl -X GET http://localhost:8081/rentals/8
+Response: single RentalResponseDto.
+
+POST /rentals/{id}/return (MANAGER only)
+Purpose: process a return (sets actualReturnDate, increments inventory).
+Sample:
+curl -X POST http://localhost:8081/rentals/1/return -H "Authorization: Bearer <jwt>"
+Response:
+"Rental (ID: 1) successfully returned."
+
+
+Payments
+POST /payments?rentalId={id}&deliveryMethod={AGENCY|DELIVERY}&deliveryCity={city} (MANAGER only)
+Purpose: create a cash payment. deliveryMethod=DELIVERY + deliveryCity=Agadir applies fixed 30.00 fee.
+Sample (manager):
+curl -X POST 'http://localhost:8081/payments?rentalId=8&deliveryMethod=AGENCY' -H "Authorization: Bearer <jwt>"
+Or delivery:
+curl -X POST 'http://localhost:8081/payments?rentalId=8&deliveryMethod=DELIVERY&deliveryCity=Agadir' -H "Authorization: Bearer <jwt>"
+Response (PaymentResponseDto):
+{
+  "id": 5,
+  "rentalId": 8,
+  "amountToPay": 70.00,
+  "deliveryFee": 0.00,
+  "deliveryMethod": "AGENCY",
+  "deliveryCity": null,
+  "status": "PENDING",
+  "type": "PAYMENT",
+  "paidAt": null
+}
+With Agadir delivery:
+{
+  "id": 6,
+  "rentalId": 8,
+  "amountToPay": 100.00,
+  "deliveryFee": 30.00,
+  "deliveryMethod": "DELIVERY",
+  "deliveryCity": "Agadir",
+  "status": "PENDING",
+  "type": "PAYMENT",
+  "paidAt": null
+}
+
+POST /payments/{paymentId}/mark-paid (MANAGER only)
+Purpose: mark payment as PAID.
+Sample:
+curl -X POST http://localhost:8081/payments/5/mark-paid -H "Authorization: Bearer <jwt>"
+Response: updated PaymentResponseDto with status PAID and paidAt timestamp:
+{
+  "id": 5,
+  "rentalId": 8,
+  "amountToPay": 70.00,
+  "deliveryFee": 0.00,
+  "deliveryMethod": "AGENCY",
+  "deliveryCity": null,
+  "status": "PAID",
+  "type": "PAYMENT",
+  "paidAt": "2025-11-21T20:45:00"
+}
+
+GET /payments/{paymentId}
+Purpose: retrieve a single payment (public).
+Sample:
+curl -X GET http://localhost:8081/payments/5
+Response: PaymentResponseDto.
+
+GET /payments/by-rental/{rentalId}
+Purpose: list payments for a rental (public).
+Sample:
+curl -X GET http://localhost:8081/payments/by-rental/8
+Response: array of PaymentResponseDto.
+
+Notes for Frontend
+- Manager endpoints require header: Authorization: Bearer <token> (token from /auth/login).
+- Public endpoints (browse cars, create rentals, view payments/rentals) do not require authentication.
+- Monetary fields use numeric decimals. Dates use ISO yyyy-MM-dd. Datetimes use ISO-8601.
+- Enums:
+  - Rental.paymentMethod: AGENCY or DELIVERY
+  - Payment.deliveryMethod: AGENCY or DELIVERY
+
+
+End of file

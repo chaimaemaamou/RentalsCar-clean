@@ -1,0 +1,341 @@
+API Endpoints — Full Detailed Examples
+=====================================
+
+This file contains every DTO, exact request/response JSON examples, and suggested mock filenames you can drop into a frontend mock folder.
+
+Structure
+- Section per resource (Auth, Cars, Rentals, Payments)
+- For each endpoint: HTTP method + path, purpose, request JSON (exact), response JSON (exact), suggested mock filename
+- DTO definitions are included as JSON schema-like examples and as the Java record definition for precision
+
+---
+AUTH
+---
+POST /auth/login
+Purpose: manager login -> returns JWT
+Java DTO (LoginRequest):
+public record LoginRequest(String email, String password) {}
+
+Exact Request JSON (file: mock/auth/login_request.json):
+{
+  "email": "manager@amc.local",
+  "password": "password"
+}
+
+Exact Response JSON (file: mock/auth/login_response.json):
+{
+  "token": "eyJ...<jwt>..."
+}
+
+Notes: HTTP 401 on bad credentials.
+
+---
+CARS
+---
+Java DTO (CarRequestDto):
+public record CarRequestDto(
+  String model,
+  String brand,
+  int inventory,
+  java.math.BigDecimal dailyFee,
+  int seats,
+  com.example.amc.model.Car.Transmission transmission,
+  com.example.amc.model.Car.FuelType fuelType
+) {}
+
+Java DTO (CarResponseDto):
+public record CarResponseDto(
+  Long id,
+  String model,
+  String brand,
+  int inventory,
+  java.math.BigDecimal dailyFee,
+  int seats,
+  com.example.amc.model.Car.Transmission transmission,
+  com.example.amc.model.Car.FuelType fuelType
+) {}
+
+1) GET /cars (public)
+Request: none
+Response JSON (file: mock/cars/get_all_response.json):
+[
+  {
+    "id": 1,
+    "model": "Clio",
+    "brand": "Renault",
+    "inventory": 3,
+    "dailyFee": 35.00,
+    "seats": 5,
+    "transmission": "MANUAL",
+    "fuelType": "GASOLINE"
+  },
+  {
+    "id": 11,
+    "model": "AdminCar",
+    "brand": "TestBrand",
+    "inventory": 1,
+    "dailyFee": 100.00,
+    "seats": 5,
+    "transmission": "MANUAL",
+    "fuelType": "GASOLINE"
+  }
+]
+
+2) GET /cars/{id} (public)
+Request: none
+Example response (file: mock/cars/get_1_response.json):
+{
+  "id": 1,
+  "model": "Clio",
+  "brand": "Renault",
+  "inventory": 3,
+  "dailyFee": 35.00,
+  "seats": 5,
+  "transmission": "MANUAL",
+  "fuelType": "GASOLINE"
+}
+
+3) POST /cars (MANAGER)
+Request JSON (file: mock/cars/create_request.json):
+{
+  "model": "AdminCar",
+  "brand": "TestBrand",
+  "inventory": 1,
+  "dailyFee": 100.00,
+  "seats": 5,
+  "transmission": "MANUAL",
+  "fuelType": "GASOLINE"
+}
+
+Response JSON (file: mock/cars/create_response.json):
+{
+  "id": 11,
+  "model": "AdminCar",
+  "brand": "TestBrand",
+  "inventory": 1,
+  "dailyFee": 100.00,
+  "seats": 5,
+  "transmission": "MANUAL",
+  "fuelType": "GASOLINE"
+}
+
+4) PATCH /cars/{id} (MANAGER)
+Request JSON (file: mock/cars/update_11_request.json):
+{
+  "model": "AdminCar",
+  "brand": "TestBrand",
+  "inventory": 2,
+  "dailyFee": 95.00,
+  "seats": 5,
+  "transmission": "MANUAL",
+  "fuelType": "GASOLINE"
+}
+Response JSON: updated CarResponseDto (file: mock/cars/update_11_response.json)
+
+5) DELETE /cars/{id} (MANAGER)
+Request: none
+Response (file: mock/cars/delete_11_response.txt):
+Car (ID: 11) successfully deleted.
+
+---
+RENTALS
+---
+Java DTO (RentalCreateRequestDto):
+public record RentalCreateRequestDto(
+  Long carId,
+  java.time.LocalDate rentalDate,
+  java.time.LocalDate returnDate,
+  String customerName,
+  String customerPhone,
+  String customerEmail,
+  String driverLicenseNumber,
+  com.example.amc.model.Rental.PaymentMethod paymentMethod
+) {}
+
+Java DTO (RentalResponseDto):
+public record RentalResponseDto(
+  Long id,
+  Long carId,
+  String carBrand,
+  String carModel,
+  java.time.LocalDate rentalDate,
+  java.time.LocalDate returnDate,
+  java.time.LocalDate actualReturnDate,
+  String customerName,
+  String customerPhone,
+  String customerEmail,
+  String driverLicenseNumber,
+  java.math.BigDecimal dailyRate,
+  Integer totalDays,
+  java.math.BigDecimal totalPrice,
+  String status,
+  String paymentMethod,
+  java.math.BigDecimal deliveryFee
+) {}
+
+1) POST /rentals (PUBLIC - walk-in)
+Exact Request JSON (file: mock/rentals/create_request.json):
+{
+  "carId": 1,
+  "rentalDate": "2025-11-21",
+  "returnDate": "2025-11-23",
+  "customerName": "Walkin",
+  "customerPhone": "+212600000000",
+  "customerEmail": "walkin@example.com",
+  "driverLicenseNumber": "DL123",
+  "paymentMethod": "AGENCY"
+}
+
+Exact Response JSON (file: mock/rentals/create_response.json):
+{
+  "id": 8,
+  "carId": 1,
+  "carBrand": "Renault",
+  "carModel": "Clio",
+  "rentalDate": "2025-11-21",
+  "returnDate": "2025-11-23",
+  "actualReturnDate": null,
+  "customerName": "Walkin",
+  "customerPhone": "+212600000000",
+  "customerEmail": "walkin@example.com",
+  "driverLicenseNumber": "DL123",
+  "dailyRate": 35.00,
+  "totalDays": 2,
+  "totalPrice": 70.00,
+  "status": "ACTIVE",
+  "paymentMethod": "AGENCY",
+  "deliveryFee": 0.00
+}
+
+2) GET /rentals (public)
+Query params: user_id (optional), is_active (true|false)
+Example response (file: mock/rentals/get_all_response.json): array of RentalResponseDto
+
+3) GET /rentals/{id} (public)
+Example response (file: mock/rentals/get_8_response.json): RentalResponseDto
+
+4) POST /rentals/{id}/return (MANAGER)
+No request body. Example cURL:
+curl -X POST http://localhost:8081/rentals/1/return -H "Authorization: Bearer <jwt>"
+Response (file: mock/rentals/return_1_response.txt):
+Rental (ID: 1) successfully returned.
+
+---
+PAYMENTS
+---
+Java DTO (PaymentRequestDto):
+public record PaymentRequestDto(
+  Long rentalId,
+  com.example.amc.model.Payment.DeliveryMethod deliveryMethod,
+  String deliveryCity
+) {}
+
+Java DTO (PaymentResponseDto):
+public record PaymentResponseDto(
+  Long id,
+  Long rentalId,
+  java.math.BigDecimal amountToPay,
+  java.math.BigDecimal deliveryFee,
+  com.example.amc.model.Payment.DeliveryMethod deliveryMethod,
+  String deliveryCity,
+  com.example.amc.model.Payment.Status status,
+  com.example.amc.model.Payment.Type type,
+  java.time.LocalDateTime paidAt
+) {}
+
+Notes: Payments endpoints require MANAGER auth for creating and marking paid. Listing and viewing payments are public.
+
+1) POST /payments?rentalId={id}&deliveryMethod={AGENCY|DELIVERY}&deliveryCity={city} (MANAGER)
+- deliveryMethod default: AGENCY
+- If deliveryMethod=DELIVERY and deliveryCity=Agadir then deliveryFee = 30.00 added to amount
+
+Example 1 (agency)
+Request (query params): rentalId=8, deliveryMethod=AGENCY
+Mock filename: mock/payments/create_agency_request.txt (query params)
+Response (file: mock/payments/create_agency_response.json):
+{
+  "id": 5,
+  "rentalId": 8,
+  "amountToPay": 70.00,
+  "deliveryFee": 0.00,
+  "deliveryMethod": "AGENCY",
+  "deliveryCity": null,
+  "status": "PENDING",
+  "type": "PAYMENT",
+  "paidAt": null
+}
+
+Example 2 (delivery to Agadir)
+Request (query params): rentalId=8, deliveryMethod=DELIVERY, deliveryCity=Agadir
+Response (file: mock/payments/create_delivery_agadir_response.json):
+{
+  "id": 6,
+  "rentalId": 8,
+  "amountToPay": 100.00,
+  "deliveryFee": 30.00,
+  "deliveryMethod": "DELIVERY",
+  "deliveryCity": "Agadir",
+  "status": "PENDING",
+  "type": "PAYMENT",
+  "paidAt": null
+}
+
+2) POST /payments/{paymentId}/mark-paid (MANAGER)
+Example cURL:
+curl -X POST http://localhost:8081/payments/5/mark-paid -H "Authorization: Bearer <jwt>"
+Response (file: mock/payments/mark_paid_5_response.json):
+{
+  "id": 5,
+  "rentalId": 8,
+  "amountToPay": 70.00,
+  "deliveryFee": 0.00,
+  "deliveryMethod": "AGENCY",
+  "deliveryCity": null,
+  "status": "PAID",
+  "type": "PAYMENT",
+  "paidAt": "2025-11-21T20:45:00"
+}
+
+3) GET /payments/{paymentId} (public)
+Response: PaymentResponseDto
+
+4) GET /payments/by-rental/{rentalId} (public)
+Response: array of PaymentResponseDto
+
+---
+SUGGESTED MOCK FILES (folder: `mock/`)
+- mock/auth/login_request.json
+- mock/auth/login_response.json
+- mock/cars/get_all_response.json
+- mock/cars/get_1_response.json
+- mock/cars/create_request.json
+- mock/cars/create_response.json
+- mock/cars/update_11_request.json
+- mock/cars/update_11_response.json
+- mock/cars/delete_11_response.txt
+- mock/rentals/create_request.json
+- mock/rentals/create_response.json
+- mock/rentals/get_all_response.json
+- mock/rentals/get_8_response.json
+- mock/rentals/return_1_response.txt
+- mock/payments/create_agency_response.json
+- mock/payments/create_delivery_agadir_response.json
+- mock/payments/mark_paid_5_response.json
+- mock/payments/get_by_rental_8_response.json
+
+---
+USAGE NOTES FOR FRONTEND
+- Manager-only actions (create/update/delete car, create payment, mark payment, return rental) must include the `Authorization: Bearer <jwt>` header.
+- Public actions (browse cars, create rental, view rentals/payments) require no auth header.
+- Use sample files above to seed frontend mock server or to feed into fixture data.
+
+If you want, I can:
+- generate these mock JSON files (create the `mock/` folder and files),
+- produce a Postman collection from these examples, or
+- export an OpenAPI 3.0 JSON/YAML describing the API.
+
+---
+File created: API_endpoints_full_examples.txt
+Location: project root
+
+*** End of document

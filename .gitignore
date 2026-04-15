@@ -1,0 +1,10 @@
+# Ignore Node modules and build artifacts for the frontend
+AMC-Front/node_modules/
+AMC-Front/.next/
+
+# Java build artifacts
+/AMC/target/
+
+# OS files
+.DS_Store
+Thumbs.db
