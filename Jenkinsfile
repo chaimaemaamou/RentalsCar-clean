@@ -18,10 +18,13 @@ pipeline {
         }
 
         stage('Build Docker Images') {
-            steps {
-                sh 'docker compose build'
-            }
-        }
+    steps {
+        sh '''
+        docker build -t rentalscar-backend ./AMC
+        docker build -t rentalscar-frontend ./AMC-Front
+        '''
+    }
+}
 
         stage('Success') {
             steps {
