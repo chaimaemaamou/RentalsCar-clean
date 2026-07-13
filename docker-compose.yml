@@ -1,5 +1,4 @@
 services:
-  # PostgreSQL Database
   db:
     image: postgres:16-alpine
     container_name: amc-db
@@ -18,13 +17,14 @@ services:
     networks:
       - amc-network
 
-  # Spring Boot Backend
   backend:
     build:
       context: ./AMC
       dockerfile: Dockerfile
     container_name: amc-backend
     restart: unless-stopped
+    ports:
+      - "8081:8081"
     environment:
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
@@ -44,17 +44,16 @@ services:
     networks:
       - amc-network
 
-  # Next.js Frontend
   frontend:
     build:
       context: ./AMC-Front
       dockerfile: Dockerfile
     container_name: amc-frontend
     restart: unless-stopped
+    ports:
+      - "3000:3000"
     environment:
-      # Server-side API URL (inside Docker network)
       NEXT_SERVER_API_URL: http://backend:8081
-      # Not needed anymore since we use proxy
       NEXT_PUBLIC_API_BASE_URL: ""
       NEXT_PUBLIC_USE_PROXY: "true"
     depends_on:
@@ -69,4 +68,3 @@ volumes:
 networks:
   amc-network:
     driver: bridge
-
