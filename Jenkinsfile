@@ -17,14 +17,17 @@ pipeline {
             }
         }
 
-        stage('Build Docker Images') {
-    steps {
-        sh '''
-        docker build -t rentalscar-backend ./AMC
-        docker build -t rentalscar-frontend ./AMC-Front
-        '''
-    }
-}
+        stage('Build Backend Docker Image') {
+            steps {
+                sh 'docker build -t rentalscar-backend ./AMC'
+            }
+        }
+
+        stage('Build Frontend Docker Image') {
+            steps {
+                sh 'docker build -t rentalscar-frontend ./AMC-Front'
+            }
+        }
 
         stage('Success') {
             steps {
