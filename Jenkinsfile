@@ -17,15 +17,24 @@ pipeline {
             }
         }
 
-        stage('Build Backend Docker Image') {
+        stage('Build Docker Images') {
             steps {
-                sh 'docker build -t rentalscar-backend ./AMC'
+                sh '''
+                docker build -t rentalscar-backend ./AMC
+                docker build -t rentalscar-frontend ./AMC-Front
+                '''
             }
         }
 
-        stage('Build Frontend Docker Image') {
+        stage('Security Scan') {
             steps {
-                sh 'docker build -t rentalscar-frontend ./AMC-Front'
+                sh '''
+                echo "========== Scan Backend =========="
+                trivy image --severity HIGH,CRITICAL rentalscar-backend
+
+                echo "========== Scan Frontend =========="
+                trivy image --severity HIGH,CRITICAL rentalscar-frontend
+                '''
             }
         }
 
