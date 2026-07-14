@@ -1,6 +1,12 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKERHUB_USER = "chomiiii"
+        BACKEND_IMAGE = "chomiiii/rentalscar-backend"
+        FRONTEND_IMAGE = "chomiiii/rentalscar-frontend"
+    }
+
     stages {
 
         stage('Checkout') {
@@ -20,27 +26,43 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 sh '''
-                docker build -t rentalscar-backend ./AMC
-                docker build -t rentalscar-frontend ./AMC-Front
+                docker build -t $BACKEND_IMAGE:latest ./AMC
+                docker build -t $FRONTEND_IMAGE:latest ./AMC-Front
                 '''
             }
         }
 
-        stage('Security Scan') {
+        stage('Trivy Scan') {
             steps {
                 sh '''
-                echo "========== Scan Backend =========="
-                trivy image --severity HIGH,CRITICAL rentalscar-backend
-
-                echo "========== Scan Frontend =========="
-                trivy image --severity HIGH,CRITICAL rentalscar-frontend
+                trivy image --severity HIGH,CRITICAL $BACKEND_IMAGE:latest
+                trivy image --severity HIGH,CRITICAL $FRONTEND_IMAGE:latest
                 '''
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh '''
+                    echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+
+                    docker push $BACKEND_IMAGE:latest
+                    docker push $FRONTEND_IMAGE:latest
+
+                    docker logout
+                    '''
+                }
             }
         }
 
         stage('Success') {
             steps {
-                echo 'Build completed successfully!'
+                echo 'Images pushed successfully to Docker Hub!'
             }
         }
     }
