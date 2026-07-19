@@ -26,8 +26,8 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 sh '''
-                docker build -t $BACKEND_IMAGE:latest ./AMC
-                docker build -t $FRONTEND_IMAGE:latest ./AMC-Front
+                docker build -t ${BACKEND_IMAGE}:latest ./AMC
+                docker build -t ${FRONTEND_IMAGE}:latest ./AMC-Front
                 '''
             }
         }
@@ -35,8 +35,11 @@ pipeline {
         stage('Trivy Scan') {
             steps {
                 sh '''
-                trivy image --severity HIGH,CRITICAL $BACKEND_IMAGE:latest
-                trivy image --severity HIGH,CRITICAL $FRONTEND_IMAGE:latest
+                echo "===== Scan Backend ====="
+                trivy image --exit-code 1 --severity CRITICAL ${BACKEND_IMAGE}:latest
+
+                echo "===== Scan Frontend ====="
+                trivy image --exit-code 1 --severity CRITICAL ${FRONTEND_IMAGE}:latest
                 '''
             }
         }
@@ -51,8 +54,8 @@ pipeline {
                     sh '''
                     echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
 
-                    docker push $BACKEND_IMAGE:latest
-                    docker push $FRONTEND_IMAGE:latest
+                    docker push ${BACKEND_IMAGE}:latest
+                    docker push ${FRONTEND_IMAGE}:latest
 
                     docker logout
                     '''
@@ -62,8 +65,18 @@ pipeline {
 
         stage('Success') {
             steps {
-                echo 'Images pushed successfully to Docker Hub!'
+                echo 'Pipeline completed successfully!'
             }
+        }
+    }
+
+    post {
+        success {
+            echo 'SUCCESS: Build, Scan and Push completed.'
+        }
+
+        failure {
+            echo 'FAILED: Trivy found CRITICAL vulnerabilities or another stage failed.'
         }
     }
 }
