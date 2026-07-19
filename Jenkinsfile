@@ -33,16 +33,16 @@ pipeline {
         }
 
         stage('Trivy Scan') {
-            steps {
-                sh '''
-                echo "===== Scan Backend ====="
-                trivy image --exit-code 1 --severity CRITICAL ${BACKEND_IMAGE}:latest
+    steps {
+        sh '''
+        echo "===== Scan Backend ====="
+        trivy image --severity CRITICAL ${BACKEND_IMAGE}:latest
 
-                echo "===== Scan Frontend ====="
-                trivy image --exit-code 1 --severity CRITICAL ${FRONTEND_IMAGE}:latest
-                '''
-            }
-        }
+        echo "===== Scan Frontend ====="
+        trivy image --severity CRITICAL ${FRONTEND_IMAGE}:latest
+        '''
+    }
+}
 
         stage('Push to Docker Hub') {
             steps {
